@@ -47,7 +47,6 @@ class FtpFs:
                 st.enoent = True
                 return st
             finally:
-                print("<<ftp:stat " + path)
                 self.ftp_lock.release()
             st.st_mode = ftp_st.st_mode
             st.st_size = ftp_st.st_size
@@ -205,9 +204,18 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
 
     # set file modification times ('touch' does that, for example)
     # we are ignoring times, so just pass in these methods
+    # we also ignore various attribute functions
     def utimens(self, path, ts_acc, ts_mod):
         pass
+    def getxattr(self, path, name, position=0):
+        return ""
+    def listxattr(self, path):
+        return []
     def setxattr(self, path, name, value, options, position=0):
+        pass
+    def removexattr(self, path, name):
+        pass
+    def chmod(self, path, mode):
         pass
 
     def readdir(self, path, offset, dh=None):
