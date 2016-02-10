@@ -67,7 +67,7 @@ class FtpFs:
     def ftp_listdir(self, path):
         with self.ftp_lock:
             print("ftp:listdir " + path)
-            return map(lambda f: fuse.Direntry(f.encode("utf-8")), ftp.listdir(path))
+            return map(lambda f: fuse.Direntry(f), ftp.listdir(path))
 
     def ftp_mkdir(self, path):
         with self.ftp_lock:
