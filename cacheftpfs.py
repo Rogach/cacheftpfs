@@ -188,8 +188,6 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
             return -ENOENT
         if self.cache_attr.get(path) != None:
             ftp_st = self.cache_attr[path]
-            if path != "/":
-                self.io_queue.put((PRIORITY_READ, "stat", path))
         else:
             ftp_st = self.ftp_stat(path)
             self.cache_attr[path] = ftp_st
@@ -233,7 +231,6 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
             print("readdir " + path)
 
         if self.cache_list.get(path) != None:
-            self.io_queue.put((PRIORITY_READ, "listdir", path))
             return self.cache_list[path]
 
         f = [fuse.Direntry("."), fuse.Direntry("..")] + self.ftp_listdir(path)
