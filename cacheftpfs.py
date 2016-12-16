@@ -37,7 +37,7 @@ class FtpFs:
     def ftp_stat(self, path):
         st = Stat()
         if path == "/":
-            st.st_mode = S_IFDIR | 0755
+            st.st_mode = S_IFDIR | 0o755
             st.st_size = 0
         else:
             self.ftp_lock.acquire()
@@ -271,7 +271,7 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
 
         self.cache_attr[path].enoent = 0
         self.cache_attr[path].st_size = len(self.cache_data[path])
-        self.cache_attr[path].st_mode = S_IFREG | 0644
+        self.cache_attr[path].st_mode = S_IFREG | 0o644
 
         self.io_queue.put((PRIORITY_WRITE, "write", path), (PRIORITY_READ, "stat", path))
 
@@ -287,7 +287,7 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
             self.cache_attr[path] = Stat()
         self.cache_attr[path].enoent = False
         self.cache_attr[path].st_size = 0
-        self.cache_attr[path].st_mode = S_IFREG | 0644
+        self.cache_attr[path].st_mode = S_IFREG | 0o644
 
         self.io_queue.put((PRIORITY_WRITE, "write", path), (PRIORITY_READ, "stat", path))
         self.flush_dir(path)
@@ -312,7 +312,7 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
             self.cache_attr[path] = Stat()
         self.cache_attr[path].enoent = False
         self.cache_attr[path].st_size = 0
-        self.cache_attr[path].st_mode = S_IFDIR | 0755
+        self.cache_attr[path].st_mode = S_IFDIR | 0o755
 
         self.flush_dir(path)
 
