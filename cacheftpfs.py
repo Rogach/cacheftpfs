@@ -176,7 +176,7 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
     def hostile_dir(self, path):
         badends = [
             ".dir-locals.el", "RCS", "CVS", ".svn", "SCCS",
-            ".bzr", ".git", ".hg", "_MTN", "{arch}"
+            ".bzr", ".git", ".hg", "_MTN", "{arch}", ".Trash", ".Trash-1000"
         ]
         return any(path.endswith(e) for e in badends)
 
