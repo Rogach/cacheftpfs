@@ -16,6 +16,8 @@ parser.add_option("--mountpoint", dest="mountpoint", help="mount fs here", metav
 parser.add_option("--host", dest="host", help="ftp host", metavar="HOST")
 parser.add_option("--user", dest="username", help="ftp username", metavar="NAME")
 parser.add_option("--pass", dest="password", help="ftp password", metavar="PASS")
+parser.add_option("--debug-ftp", action="store_true", dest="debug_ftp", help="list ftp calls")
+parser.add_option("--debug-fs", action="store_true", dest="debug_fs", help="list fs calls")
 (options, args) = parser.parse_args()
 
 ftp = FTPHost(options.host, options.username, options.password)
@@ -39,7 +41,8 @@ class FtpFs:
             st.st_size = 0
         else:
             self.ftp_lock.acquire()
-            print("ftp:stat " + path)
+            if options.debug_ftp:
+                print("ftp:stat " + path)
             try:
                 ftp_st = ftp.stat(path)
             except:
@@ -54,39 +57,46 @@ class FtpFs:
 
     def ftp_write(self, path, data):
         with self.ftp_lock:
-            print("ftp:write " + path)
+            if options.debug_ftp:
+                print("ftp:write " + path)
             with ftp.open(path, mode = "wb") as f:
                 f.write(data)
 
     def ftp_read(self, path):
         with self.ftp_lock:
-            print("ftp:read " + path)
+            if options.debug_ftp:
+                print("ftp:read " + path)
             with ftp.open(path, mode = "rb") as f:
                 return f.read()
 
     def ftp_listdir(self, path):
         with self.ftp_lock:
-            print("ftp:listdir " + path)
+            if options.debug_ftp:
+                print("ftp:listdir " + path)
             return map(lambda f: fuse.Direntry(f), ftp.listdir(path))
 
     def ftp_mkdir(self, path):
         with self.ftp_lock:
-            print("ftp:mkdir " + path)
+            if options.debug_ftp:
+                print("ftp:mkdir " + path)
             ftp.mkdir(path)
 
     def ftp_rename(self, from_path, to_path):
         with self.ftp_lock:
-            print("ftp:rename " + from_path + " -> " + to_path)
+            if options.debug_ftp:
+                print("ftp:rename " + from_path + " -> " + to_path)
             ftp.rename(from_path, to_path)
 
     def ftp_remove(self, path):
         with self.ftp_lock:
-            print("ftp:remove " + path)
+            if options.debug_ftp:
+                print("ftp:remove " + path)
             ftp.remove(path)
 
     def ftp_rmtree(self, path):
         with self.ftp_lock:
-            print("ftp:rmtree " + path)
+            if options.debug_ftp:
+                print("ftp:rmtree " + path)
             ftp.rmtree(path)
 
 class IoQueue:
@@ -171,7 +181,7 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         return any(path.endswith(e) for e in badends)
 
     def getattr(self, path):
-        if path != "/":
+        if options.debug_fs:
             print("getattr " + path)
 
         if self.hostile_dir(path):
@@ -219,7 +229,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         pass
 
     def readdir(self, path, offset, dh=None):
-        print("readdir " + path)
+        if options.debug_fs:
+            print("readdir " + path)
 
         if self.cache_list.get(path) != None:
             self.io_queue.put((PRIORITY_READ, "listdir", path))
@@ -233,7 +244,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         return 0
 
     def create(self, path, mode, rdev):
-        print("create " + path + " mode=" + str(mode))
+        if options.debug_fs:
+            print("create " + path + " mode=" + str(mode))
 
         self.cache_data[path] = ""
 
@@ -247,7 +259,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         self.flush_dir(path)
 
     def write(self, path, buf, offset, fh=None):
-        print("write " + path + " offset=" + str(offset))
+        if options.debug_fs:
+            print("write " + path + " offset=" + str(offset))
 
         if self.cache_data.get(path) == None:
             self.cache_data[path] = self.ftp_read(path)
@@ -265,7 +278,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         return len(buf)
 
     def truncate(self, path, length, fh=None):
-        print("truncate " + path)
+        if options.debug_fs:
+            print("truncate " + path)
 
         self.cache_data[path] = ""
 
@@ -279,7 +293,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         self.flush_dir(path)
 
     def read(self, path, length, offset, fh=None):
-        print("read " + path + " length=" + str(length) + " offset=" + str(offset))
+        if options.debug_fs:
+            print("read " + path + " length=" + str(length) + " offset=" + str(offset))
 
         if self.cache_data.get(path) != None:
             self.io_queue.put((PRIORITY_READ, "read", path))
@@ -289,7 +304,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         return self.cache_data[path][offset : offset + length]
 
     def mkdir(self, path, mode):
-        print("mkdir " + path)
+        if options.debug_fs:
+            print("mkdir " + path)
 
         self.io_queue.put((PRIORITY_WRITE, "mkdir", path), (PRIORITY_READ, "stat", path))
         if self.cache_attr.get(path) == None:
@@ -301,7 +317,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         self.flush_dir(path)
 
     def rename(self, from_path, to_path):
-        print("rename " + from_path + " -> " + to_path)
+        if options.debug_fs:
+            print("rename " + from_path + " -> " + to_path)
 
         self.io_queue.put((PRIORITY_WRITE, "rename", from_path, to_path), (PRIORITY_READ, "stat", to_path))
 
@@ -316,7 +333,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         self.cache_data.pop(to_path, None)
 
     def unlink(self, path):
-        print("unlink " + path)
+        if options.debug_fs:
+            print("unlink " + path)
 
         self.io_queue.put((PRIORITY_WRITE, "remove", path))
 
@@ -329,7 +347,8 @@ class CacheFtpFS(fuse.Fuse, FtpFs):
         self.cache_data.pop(path, None)
 
     def rmdir(self, path):
-        print("rmdir " + path)
+        if options.debug_fs:
+            print("rmdir " + path)
 
         self.io_queue.put((PRIORITY_WRITE, "rmtree", path))
 
